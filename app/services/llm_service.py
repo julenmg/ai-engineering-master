@@ -1,8 +1,8 @@
 import time
 from openai import AsyncOpenAI
 from anthropic import AsyncAnthropic
-from config import Settings
-from context import SYSTEM_PROMPT
+from app.config import Settings
+from app.context.examples import SYSTEM_PROMPT
 
 
 async def generate_estimation(

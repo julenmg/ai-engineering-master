@@ -4,14 +4,10 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./main.py:/app/main.py
-      - ./config.py:/app/config.py
-      - ./models.py:/app/models.py
-      - ./context.py:/app/context.py
-      - ./llm_service.py:/app/llm_service.py
+      - ./app:/project/app
     environment:
       LLM_PROVIDER: ${LLM_PROVIDER:-openai}
       LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
