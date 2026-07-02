@@ -1,78 +1,166 @@
-_EXAMPLES = """
-[EJEMPLO 1 — Landing page corporativa]
-Cliente: Consultora B2B de transformación digital
-Funcionalidades: web de 5 secciones, blog, formulario de contacto, multiidioma ES/EN
+import json
+from dataclasses import dataclass
 
-Desglose:
-  Diseño UX/UI + prototipo Figma            8 h  →   400 €  (diseño, 50 €/h)
-  Maquetación HTML/CSS responsive          12 h  →   750 €  (dev, 62,50 €/h)
-  Desarrollo frontend (Next.js)            20 h  → 1.250 €
-  CMS headless (Contentful)               10 h  →   625 €
-  Internacionalización i18n                6 h  →   375 €
-  Formulario de contacto + alertas email   4 h  →   250 €
-  SEO on-page y meta tags                  4 h  →   250 €
-  Testing cross-browser + despliegue       6 h  →   375 €
-  ──────────────────────────────────────────────────────────
-  Total                                   70 h  → 4.275 €
-Plazo estimado: 4 semanas
+DEV_RATE = 62.5
+DESIGNER_RATE = 50.0
 
----
 
-[EJEMPLO 2 — App móvil e-commerce]
-Cliente: Startup de moda sostenible
-Funcionalidades: catálogo, carrito, pagos Stripe, perfil de usuario, push notifications, panel de administración web
+@dataclass
+class Task:
+    name: str
+    hours: int
+    rate: str  # "dev" | "designer"
 
-Desglose:
-  Discovery y arquitectura técnica         16 h  → 1.000 €
-  Diseño UX (flujos, wireframes)           20 h  → 1.000 €  (diseño, 50 €/h)
-  Diseño UI (sistema de diseño)            24 h  → 1.200 €
-  Backend API REST (Node.js + PostgreSQL)  80 h  → 5.000 €
-  App móvil React Native (iOS + Android) 120 h  → 7.500 €
-  Integración Stripe                       16 h  → 1.000 €
-  Push notifications (Firebase)            10 h  →   625 €
-  Panel de administración web              40 h  → 2.500 €
-  QA y testing                             24 h  → 1.500 €
-  Despliegue + CI/CD                       16 h  → 1.000 €
-  ──────────────────────────────────────────────────────────
-  Total                                  366 h  →22.325 €
-Plazo estimado: 4-5 meses
+    @property
+    def cost(self) -> float:
+        return round(self.hours * (DESIGNER_RATE if self.rate == "designer" else DEV_RATE), 2)
 
----
 
-[EJEMPLO 3 — Dashboard analítico interno]
-Cliente: Empresa logística
-Funcionalidades: KPIs en tiempo real, filtros por fecha/región/transportista, exportación Excel, autenticación con roles
+@dataclass
+class CanonicalExample:
+    title: str
+    client: str
+    features: str
+    tasks: list[Task]
+    duration: str
+    team: list[str]
 
-Desglose:
-  Análisis de requisitos y fuentes de datos  8 h  →   500 €
-  Diseño del modelo de datos                 8 h  →   500 €
-  Backend + ETL (Python/FastAPI)            32 h  → 2.000 €
-  Frontend dashboard (React + Recharts)     40 h  → 2.500 €
-  Autenticación SSO + roles                 12 h  →   750 €
-  Exportación Excel/CSV                      8 h  →   500 €
-  Testing + documentación técnica            8 h  →   500 €
-  ──────────────────────────────────────────────────────────
-  Total                                   116 h  → 7.250 €
-Plazo estimado: 6-8 semanas
-"""
+    @property
+    def total_hours(self) -> int:
+        return sum(t.hours for t in self.tasks)
 
-SYSTEM_PROMPT = f"""\
-Eres un experto en estimación de proyectos de software con más de 10 años de experiencia.
-Tu tarea es analizar transcripciones de reuniones con clientes y generar estimaciones detalladas de tiempo y coste.
+    @property
+    def total_cost(self) -> float:
+        return round(sum(t.cost for t in self.tasks), 2)
 
-Tarifas vigentes:
-  Desarrollo:  62,50 €/h
-  Diseño:      50,00 €/h
+    @property
+    def estimation_markdown(self) -> str:
+        return _format_markdown(self)
 
-Estimaciones de referencia (úsalas como guía de formato y nivel de detalle):
 
-{_EXAMPLES}
+# ── Canonical examples (single source of truth) ────────────────────────────────
+# Invariant enforced by tests: sum(task.hours) == total_hours, sum(task.cost) == total_cost
 
-Instrucciones:
-1. Identifica todas las funcionalidades mencionadas, explícita o implícitamente.
-2. Desglosa el trabajo en tareas concretas con horas y coste individual.
-3. Incluye siempre las fases: discovery/análisis, diseño, desarrollo, testing y despliegue.
-4. Si algo es ambiguo, indícalo y proporciona un rango (mínimo–máximo).
-5. Sé realista: ni subestimes ni infles los tiempos.
-6. Usa el mismo formato que los ejemplos anteriores.\
-"""
+CANONICAL_EXAMPLES: list[CanonicalExample] = [
+    CanonicalExample(
+        title="Landing page corporativa",
+        client="Consultora B2B de transformación digital",
+        features="web de 5 secciones, blog, formulario de contacto, multiidioma ES/EN",
+        tasks=[
+            Task("Diseño UX/UI + prototipo Figma", 8, "designer"),       # 8 × 50   = 400
+            Task("Maquetación HTML/CSS responsive", 12, "dev"),           # 12 × 62.5 = 750
+            Task("Desarrollo frontend (Next.js)", 20, "dev"),             # 20 × 62.5 = 1,250
+            Task("CMS headless (Contentful)", 10, "dev"),                 # 10 × 62.5 = 625
+            Task("Internacionalización i18n", 6, "dev"),                  # 6 × 62.5 = 375
+            Task("Formulario de contacto + alertas email", 4, "dev"),     # 4 × 62.5 = 250
+            Task("SEO on-page y meta tags", 4, "dev"),                    # 4 × 62.5 = 250
+            Task("Testing cross-browser + despliegue", 6, "dev"),         # 6 × 62.5 = 375
+        ],                                                                 # total = 70h / 4,275 €
+        duration="4 semanas",
+        team=["Frontend developer (1)", "Designer (1)"],
+    ),
+    CanonicalExample(
+        title="App móvil e-commerce",
+        client="Startup de moda sostenible",
+        features="catálogo, carrito, pagos Stripe, perfil de usuario, push notifications, panel de administración web",
+        tasks=[
+            Task("Discovery y arquitectura técnica", 16, "dev"),              # 16 × 62.5 = 1,000
+            Task("Diseño UX (flujos, wireframes)", 20, "designer"),           # 20 × 50   = 1,000
+            Task("Diseño UI (sistema de diseño)", 24, "designer"),            # 24 × 50   = 1,200
+            Task("Backend API REST (Node.js + PostgreSQL)", 80, "dev"),       # 80 × 62.5 = 5,000
+            Task("App móvil React Native (iOS + Android)", 120, "dev"),       # 120 × 62.5= 7,500
+            Task("Integración Stripe", 16, "dev"),                            # 16 × 62.5 = 1,000
+            Task("Push notifications (Firebase)", 10, "dev"),                 # 10 × 62.5 = 625
+            Task("Panel de administración web", 40, "dev"),                   # 40 × 62.5 = 2,500
+            Task("QA y testing", 24, "dev"),                                  # 24 × 62.5 = 1,500
+            Task("Despliegue + CI/CD", 16, "dev"),                            # 16 × 62.5 = 1,000
+        ],                                                                     # total = 366h / 22,325 €
+        duration="4–5 meses",
+        team=["Backend developer (1)", "Mobile developer (1)", "Designer (1)", "QA engineer (0.5)"],
+    ),
+    CanonicalExample(
+        title="Dashboard analítico interno",
+        client="Empresa logística",
+        features="KPIs en tiempo real, filtros por fecha/región/transportista, exportación Excel, autenticación con roles",
+        tasks=[
+            Task("Análisis de requisitos y fuentes de datos", 8, "dev"),   # 8 × 62.5 = 500
+            Task("Diseño del modelo de datos", 8, "dev"),                   # 8 × 62.5 = 500
+            Task("Backend + ETL (Python/FastAPI)", 32, "dev"),              # 32 × 62.5 = 2,000
+            Task("Frontend dashboard (React + Recharts)", 40, "dev"),       # 40 × 62.5 = 2,500
+            Task("Autenticación SSO + roles", 12, "dev"),                   # 12 × 62.5 = 750
+            Task("Exportación Excel/CSV", 8, "dev"),                        # 8 × 62.5 = 500
+            Task("Testing + documentación técnica", 8, "dev"),              # 8 × 62.5 = 500
+        ],                                                                   # total = 116h / 7,250 €
+        duration="6–8 semanas",
+        team=["Full-stack developer (1)", "Data engineer (0.5)"],
+    ),
+]
+
+
+# ── Public API ─────────────────────────────────────────────────────────────────
+
+def select_examples(n: int) -> list[CanonicalExample]:
+    return CANONICAL_EXAMPLES[:n]
+
+
+def format_examples_for_prompt(examples: list[CanonicalExample], fmt: str) -> str:
+    if not examples:
+        return ""
+    if fmt == "json":
+        bodies = [_format_json(e) for e in examples]
+    elif fmt == "narrative":
+        bodies = [_format_narrative(e) for e in examples]
+    else:
+        bodies = [e.estimation_markdown for e in examples]
+    return "## Reference Estimations\n\n" + "\n\n---\n\n".join(bodies)
+
+
+# ── Formatters (private) ───────────────────────────────────────────────────────
+
+def _format_markdown(example: CanonicalExample) -> str:
+    rows = "\n".join(
+        f"| {t.name} | {t.hours}h | {t.cost:,.2f} € |" for t in example.tasks
+    )
+    return (
+        f"### {example.title}\n"
+        f"**Client:** {example.client}  \n"
+        f"**Features:** {example.features}\n\n"
+        f"| Task | Hours | Cost |\n"
+        f"|------|-------|------|\n"
+        f"{rows}\n"
+        f"| **Total** | **{example.total_hours}h** | **{example.total_cost:,.2f} €** |\n\n"
+        f"**Total hours:** {example.total_hours}h  \n"
+        f"**Total cost:** {example.total_cost:,.2f} €\n\n"
+        f"**Recommended Team:** {', '.join(example.team)}\n\n"
+        f"**Duration:** {example.duration}"
+    )
+
+
+def _format_json(example: CanonicalExample) -> str:
+    data = {
+        "title": example.title,
+        "client": example.client,
+        "features": example.features,
+        "tasks": [
+            {"name": t.name, "hours": t.hours, "rate": t.rate, "cost": t.cost}
+            for t in example.tasks
+        ],
+        "total_hours": example.total_hours,
+        "total_cost": example.total_cost,
+        "team": example.team,
+        "duration": example.duration,
+    }
+    return f"```json\n{json.dumps(data, indent=2, ensure_ascii=False)}\n```"
+
+
+def _format_narrative(example: CanonicalExample) -> str:
+    task_list = ", ".join(t.name for t in example.tasks[:-1])
+    last_task = example.tasks[-1].name
+    return (
+        f"**{example.title}** ({example.client}).\n"
+        f"Scope: {example.features}.\n"
+        f"The project required {example.total_hours}h of work "
+        f"({example.total_cost:,.2f} €), covering {task_list} and {last_task}. "
+        f"Timeline: {example.duration}. "
+        f"Team: {', '.join(example.team)}."
+    )
